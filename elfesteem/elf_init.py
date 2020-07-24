@@ -19,7 +19,6 @@ class test(type):
 
 class StructWrapperMC(type):
     def __new__(cls, name, bases, dct):
-        print(dct)
         wrapped = dct.get('wrapped', None)
         if wrapped is not None:  # XXX: make dct lookup look into base classes
             for fname, v in wrapped._fields:
