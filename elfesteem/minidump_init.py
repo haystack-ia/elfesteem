@@ -1,8 +1,8 @@
 """
 High-level abstraction of Minidump file
 """
-from strpatchwork import StrPatchwork
-import minidump as mp
+from .strpatchwork import StrPatchwork
+from . import minidump as mp
 
 
 class MemorySegment(object):
@@ -102,7 +102,7 @@ class Minidump(object):
                                           )
         )
         streamdir_size = len(empty_stream)
-        for i in xrange(self.minidumpHDR.NumberOfStreams):
+        for i in range(self.minidumpHDR.NumberOfStreams):
             stream_offset = base_offset + i * streamdir_size
             stream = mp.StreamDirectory.unpack(self._content, stream_offset, self)
             self.streams.append(stream)

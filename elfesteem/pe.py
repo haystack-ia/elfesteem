@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 
-from new_cstruct import CStruct
-from strpatchwork import StrPatchwork
+from .new_cstruct import CStruct
+from .strpatchwork import StrPatchwork
 import struct
 import logging
 from collections import defaultdict
@@ -318,7 +318,7 @@ class DirImport(CStruct):
         if self.parent_head._wsize == 32:
             mask_ptr = 0x80000000
         elif self.parent_head._wsize == 64:
-            mask_ptr = 0x8000000000000000L
+            mask_ptr = 0x8000000000000000
 
         ofend = of + \
                 self.parent_head.NThdr.optentries[DIRECTORY_ENTRY_IMPORT].size
@@ -356,7 +356,7 @@ class DirImport(CStruct):
                 tmp_thunk = imp.originalfirstthunks
             elif imp.firstthunk:
                 tmp_thunk = imp.firstthunks
-            for i in xrange(len(tmp_thunk)):
+            for i in range(len(tmp_thunk)):
                 if tmp_thunk[i].rva & mask_ptr == 0:
                     try:
                         n = ImportByName.unpack(s,
@@ -492,7 +492,7 @@ class DirImport(CStruct):
         if self.parent_head._wsize == 32:
             mask_ptr = 0x80000000
         elif self.parent_head._wsize == 64:
-            mask_ptr = 0x8000000000000000L
+            mask_ptr = 0x8000000000000000
         new_impdesc = []
         of1 = None
         for nd, fcts in new_dll:
@@ -503,7 +503,7 @@ class DirImport(CStruct):
             if d.firstthunk != None:
                 of1 = d.firstthunk
             elif of1 == None:
-                raise "set fthunk"
+                raise Exception("set fthunk")
             else:
                 d.firstthunk = of1
             d.dlldescname = DescName(self.parent_head, name=d.name)
@@ -518,7 +518,7 @@ class DirImport(CStruct):
             impbynames = []
             for nf in fcts:
                 f = Rva(self.parent_head)
-                if type(nf) in [int, long]:
+                if type(nf) in [int, int]:
                     f.rva = mask_ptr + nf
                     ibn = nf
                 elif type(nf) in [str]:
@@ -555,7 +555,7 @@ class DirImport(CStruct):
         if self.parent_head._wsize == 32:
             mask_ptr = 0x80000000 - 1
         elif self.parent_head._wsize == 64:
-            mask_ptr = 0x8000000000000000L - 1
+            mask_ptr = 0x8000000000000000 - 1
 
         for i, d in enumerate(self.impdesc):
             if d.dlldescname.name.lower() != dllname.lower():
@@ -571,7 +571,7 @@ class DirImport(CStruct):
                     if isinstance(imp, ImportByName):
                         if funcname == imp.name:
                             return d.firstthunk + j * self.parent_head._wsize / 8
-            elif type(funcname) in (int, long):
+            elif type(funcname) in (int, int):
                 for j, imp in enumerate(d.impbynames):
                     if not isinstance(imp, ImportByName):
                         if tmp_thunk[j].rva & mask_ptr == funcname:
@@ -710,7 +710,7 @@ class DirExport(CStruct):
 
         rep = ["<%s %d (%s) %s>" % (self.__class__.__name__,
                                     self.expdesc.numberoffunctions, self.dlldescname, repr(self.expdesc))]
-        tmp_names = [[] for x in xrange(self.expdesc.numberoffunctions)]
+        tmp_names = [[] for x in range(self.expdesc.numberoffunctions)]
         for i, n in enumerate(self.f_names):
             tmp_names[self.f_nameordinals[i].ordinal].append(n.name)
         for i, s in enumerate(self.f_address):
@@ -840,7 +840,7 @@ class DirDelay(CStruct):
         if self.parent_head._wsize == 32:
             mask_ptr = 0x80000000
         elif self.parent_head._wsize == 64:
-            mask_ptr = 0x8000000000000000L
+            mask_ptr = 0x8000000000000000
 
         parent = self.parent_head
         for i, d in enumerate(out):
@@ -875,9 +875,9 @@ class DirDelay(CStruct):
             elif d.firstthunk:
                 tmp_thunk = d.firstthunks
             else:
-                print ValueError("no thunk in delay dir!! ")
+                print(ValueError("no thunk in delay dir!! "))
                 return
-            for i in xrange(len(tmp_thunk)):
+            for i in range(len(tmp_thunk)):
                 if tmp_thunk[i].rva & mask_ptr == 0:
                     n = ImportByName.unpack(s,
                                             isfromva(tmp_thunk[i].rva),
@@ -990,7 +990,7 @@ class DirDelay(CStruct):
         if self.parent_head._wsize == 32:
             mask_ptr = 0x80000000
         elif self.parent_head._wsize == 64:
-            mask_ptr = 0x8000000000000000L
+            mask_ptr = 0x8000000000000000
         new_impdesc = []
         of1 = None
         for nd, fcts in new_dll:
@@ -1002,7 +1002,7 @@ class DirDelay(CStruct):
             if d.firstthunk != None:
                 of1 = d.firstthunk
             elif of1 == None:
-                raise "set fthunk"
+                raise Exception("set fthunk")
             else:
                 d.firstthunk = of1
             d.dlldescname = DescName(self.parent_head, name=d.name)
@@ -1017,7 +1017,7 @@ class DirDelay(CStruct):
             impbynames = []
             for nf in fcts:
                 f = Rva(self.parent_head)
-                if type(nf) in [int, long]:
+                if type(nf) in [int, int]:
                     f.rva = mask_ptr + nf
                     ibn = None
                 elif type(nf) in [str]:
@@ -1069,7 +1069,7 @@ class DirDelay(CStruct):
                     if isinstance(imp, ImportByName):
                         if f == imp.name:
                             return isfromva(d.firstthunk) + j * 4
-            elif type(f) in (int, long):
+            elif type(f) in (int, int):
                 for j, imp in enumerate(d.impbynames):
                     if not isinstance(imp, ImportByName):
                         if isfromva(tmp_thunk[j].rva & 0x7FFFFFFF) == f:
@@ -1214,14 +1214,14 @@ class DirReloc(CStruct):
             else:
                 all_base_ad.pop()
                 rels_by_base[all_base_ad[-1]].append(r)
-        rels_by_base = [x for x in rels_by_base.items()]
+        rels_by_base = [x for x in list(rels_by_base.items())]
         rels_by_base.sort()
         for o_init, rels in rels_by_base:
             # o_init = rels[0]&0xFFFFF000
             offsets = struct_array(self, None, None, Reloc, 0)
             for o in rels:
                 if (o & 0xFFFFF000) != o_init:
-                    raise "relocs must be in same range"
+                    raise Exception("relocs must be in same range")
                 r = Reloc(self.parent_head)
                 r.rel = (rtype, o - o_init)
                 offsets.append(r)
@@ -1248,7 +1248,7 @@ class DirReloc(CStruct):
             while i < len(rel.rels):
                 r = rel.rels[i]
                 if r.rel[0] != 0 and r.rel[1] + of1 in taboffset:
-                    print 'del reloc', hex(r.rel[1] + of1)
+                    print('del reloc', hex(r.rel[1] + of1))
                     del rel.rels[i]
                     rel.size -= Reloc._size
                 else:
@@ -1278,7 +1278,7 @@ class DirRes(CStruct):
 
         out = []
         tmp_of = of
-        for i in xrange(nbr):
+        for i in range(nbr):
             if tmp_of >= ofend:
                 break
             if tmp_of + l >= len(s):
@@ -1426,7 +1426,7 @@ class DirRes(CStruct):
                 else:
                     raise RuntimeError("recursive dir")
         dir_todo = dir_done
-        dir_inv = dict(map(lambda x: (x[1], x[0]), dir_todo.items()))
+        dir_inv = dict([(x[1], x[0]) for x in list(dir_todo.items())])
         while dir_todo:
             rva_tmp, my_dir = dir_todo.popitem()
             for e in my_dir.resentries:
@@ -1466,7 +1466,7 @@ class DirRes(CStruct):
                 else:
                     out.append((index, repr(a)))
             else:
-                raise "zarb"
+                raise Exception("zarb")
         for i, c in out:
             rep.append(' ' * 4 * i + c)
         return "\n".join(rep)
@@ -1528,7 +1528,7 @@ class ResEntry(CStruct):
         name = v
         if self.name_s:
             name = (self.name - self.parent_head.NThdr.optentries[
-                    DIRECTORY_ENTRY_RESOURCE].rva) + 0x80000000L
+                    DIRECTORY_ENTRY_RESOURCE].rva) + 0x80000000
         return struct.pack('I', name)
 
     def geto(self, s, of):
@@ -1650,28 +1650,28 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         PEFILE = open(sys.argv[1])
     dhdr = Doshdr._from_file(PEFILE)
-    print repr(dhdr)
-    print "sigMZ:", hex(dhdr.magic), hex(len(dhdr))
+    print(repr(dhdr))
+    print("sigMZ:", hex(dhdr.magic), hex(len(dhdr)))
 
     PEFILE.seek(dhdr.lfanew)
     nthdr = NThdr._from_file(PEFILE)
-    print repr(nthdr)
-    print "sigPE:", hex(nthdr.signature), hex(len(nthdr))
+    print(repr(nthdr))
+    print("sigPE:", hex(nthdr.signature), hex(len(nthdr)))
 
     PEFILE.seek(dhdr.lfanew + len(nthdr))
     opthdr = Opthdr._from_file(PEFILE)
-    print repr(opthdr)
-    print "sigHDR:", hex(opthdr.magic), hex(len(opthdr))
+    print(repr(opthdr))
+    print("sigHDR:", hex(opthdr.magic), hex(len(opthdr)))
 
     PEFILE.seek(dhdr.lfanew + len(nthdr) + len(opthdr))
-    for i in xrange(opthdr.numberofrvaandsizes):
+    for i in range(opthdr.numberofrvaandsizes):
         optehdr = Optehdr._from_file(PEFILE)
-        print repr(optehdr)
+        print(repr(optehdr))
 
-    print hex(dhdr.lfanew + len(nthdr) + nthdr.sizeofoptionalheader)
+    print(hex(dhdr.lfanew + len(nthdr) + nthdr.sizeofoptionalheader))
     PEFILE.seek(dhdr.lfanew + len(nthdr) + nthdr.sizeofoptionalheader)
-    for i in xrange(nthdr.numberofsections):
+    for i in range(nthdr.numberofsections):
         # PEFILE.seek(dhdr.lfanew+len(nthdr))
         shdr = Shdr._from_file(PEFILE)
-        print repr(shdr)
-        print "name:", shdr.name, hex(len(shdr))
+        print(repr(shdr))
+        print("name:", shdr.name, hex(len(shdr)))

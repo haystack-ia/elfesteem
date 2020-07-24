@@ -7,7 +7,7 @@ from elfesteem.pe_init import PE
 minidump = Minidump(open(sys.argv[1]).read())
 
 pe = PE()
-for i, memory in enumerate(sorted(minidump.memory.itervalues(),
+for i, memory in enumerate(sorted(iter(minidump.memory.values()),
                                   key=lambda x:x.address)):
     # Get section name
     name = str(memory.name)

@@ -164,8 +164,7 @@ class Cstruct_Metaclass(type):
         return c
 
 
-class CStruct(object):
-    __metaclass__ = Cstruct_Metaclass
+class CStruct(object, metaclass=Cstruct_Metaclass):
     _packformat = ""
     _fields = []
 
@@ -192,7 +191,7 @@ class CStruct(object):
         for f in self._fields:
             setattr(self, f[0] + self.__class__.field_suffix, None)
         if kargs:
-            for k, v in kargs.items():
+            for k, v in list(kargs.items()):
                 self.__dict__[k + self.__class__.field_suffix] = v
 
     def pack(self):
@@ -248,7 +247,7 @@ class CStruct(object):
         return len(self.pack())
 
     def __repr__(self):
-        return "<%s=%s>" % (self.__class__.__name__, "/".join(map(lambda x: repr(getattr(self, x[0])), self._fields)))
+        return "<%s=%s>" % (self.__class__.__name__, "/".join([repr(getattr(self, x[0])) for x in self._fields]))
 
     def __getitem__(self, item):  # to work with format strings
         return getattr(self, item)
@@ -321,37 +320,37 @@ if __name__ == "__main__":
                    ("k", "u16"),
                    ]
 
-    print all_cstructs
+    print(all_cstructs)
 
     s1 = struct.pack('HHI', 1111, 2222, 333333333)
     c = c1.unpack(s1)
-    print repr(c)
+    print(repr(c))
     assert len(c) == 8
     s2 = str(c)
     assert s1 == s2
-    print repr(s2)
-    print repr(c1.unpack(s2))
+    print(repr(s2))
+    print(repr(c1.unpack(s2)))
 
     s3 = struct.pack('HHI', 4444, 5555, 666666666) + s2
-    print repr(s3)
+    print(repr(s3))
     assert len(s3) == 16
     c = c2.unpack(s3)
-    print repr(c)
+    print(repr(c))
     s4 = str(c)
-    print repr(s3), repr(s4)
+    print(repr(s3), repr(s4))
     assert s3 == s4
     assert c.c2_c.parent_head == c
 
     s5 = struct.pack('HHH', 2, 5555, 6666) + s1 * 2 + struct.pack('H', 9999)
     c = c3.unpack(s5)
     assert len(c) == 24
-    print repr(c)
-    print c.b
-    print c.c
-    print c.c[0].c1_field1
+    print(repr(c))
+    print(c.b)
+    print(c.c)
+    print(c.c[0].c1_field1)
 
     s6 = str(c)
-    print repr(s5), repr(s6)
+    print(repr(s5), repr(s6))
     assert s5 == s6
 
     c = c1()
@@ -362,21 +361,21 @@ if __name__ == "__main__":
 
     s7 = struct.pack('H', 8888) + "fffff\x00" + struct.pack('H', 9999)
     c = c4.unpack(s7)
-    print repr(c)
-    print repr(c.e)
-    print repr(c.f)
+    print(repr(c))
+    print(repr(c.e))
+    print(repr(c.f))
 
-    print repr(s7)
-    print repr(str(c))
+    print(repr(s7))
+    print(repr(str(c)))
     assert s7 == str(c)
 
     s8 = struct.pack('H4s', 8888, "abcd")
     c = c5.unpack(s8)
-    print repr(c)
+    print(repr(c))
     assert s8 == str(c)
 
     s9 = struct.pack('H', 9999) + "toto\x00" + struct.pack('H', 1010)
-    print repr(s9)
+    print(repr(s9))
     c = c6.unpack(s9)
-    print repr(c), repr(str(c))
+    print(repr(c), repr(str(c)))
     assert s9 == str(c)

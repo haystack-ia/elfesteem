@@ -2,10 +2,11 @@
 
 import struct
 import array
-import pe
-from strpatchwork import StrPatchwork
+from . import pe
+from .strpatchwork import StrPatchwork
 import logging
 from collections import defaultdict
+from functools import reduce
 log = logging.getLogger("peparse")
 console_handler = logging.StreamHandler()
 console_handler.setFormatter(logging.Formatter("%(levelname)-5s: %(message)s"))
@@ -108,7 +109,7 @@ class ContectRva(object):
         @rva: rva start address
         @data: data to set
         """
-        if not isinstance(rva, (int, long)):
+        if not isinstance(rva, int):
             raise ValueError('addr must be int/long')
         rva_items = self.get_rva_item(rva, rva + len(data))
         if rva_items is None:
@@ -174,7 +175,7 @@ class ContentVirtual:
         @addr: virtual start address
         @data: data to set
         """
-        if not isinstance(addr, (int, long)):
+        if not isinstance(addr, int):
             raise ValueError('addr must be int/long')
         self.parent.rva.set(self.parent.virt2rva(addr), data)
 
@@ -275,7 +276,7 @@ class PE(object):
 
             self.Opthdr = Opthdr(self)
             self.NThdr = pe.NThdr(self)
-            self.NThdr.optentries = [pe.Optehdr(self) for x in xrange(0x10)]
+            self.NThdr.optentries = [pe.Optehdr(self) for x in range(0x10)]
             self.NThdr.CheckSum = 0
             self.SHList = pe.SHList(self)
             self.SHList.shlist = []
@@ -569,7 +570,7 @@ class PE(object):
         return False
 
     def get_drva(self):
-        print 'Deprecated: Use PE.rva instead of PE.drva'
+        print('Deprecated: Use PE.rva instead of PE.drva')
         return self._rva
 
     def get_rva(self):
@@ -585,7 +586,7 @@ class PE(object):
     virt = property(get_virt)
 
     def patch_crc(self, c, olds):
-        s = 0L
+        s = 0
         data = c[:]
         l = len(data)
         if len(c) % 2:
@@ -658,7 +659,7 @@ class PE(object):
 
     def export_funcs(self):
         if self.DirExport is None:
-            print 'no export dir found'
+            print('no export dir found')
             return None, None
 
         all_func = {}
@@ -710,11 +711,11 @@ if __name__ == "__main__":
     readline.parse_and_bind("tab: complete")
 
     e = PE(open(sys.argv[1]).read())
-    print repr(e.DirImport)
-    print repr(e.DirExport)
-    print repr(e.DirDelay)
-    print repr(e.DirReloc)
-    print repr(e.DirRes)
+    print(repr(e.DirImport))
+    print(repr(e.DirExport))
+    print(repr(e.DirDelay))
+    print(repr(e.DirReloc))
+    print(repr(e.DirRes))
 
     # XXX patch boundimport /!\
     e.NThdr.optentries[pe.DIRECTORY_ENTRY_BOUND_IMPORT].rva = 0
@@ -769,8 +770,8 @@ if __name__ == "__main__":
         e.DirRes.set_rva(s_myres.addr)
 
     e_str = str(e)
-    print "f1", e.DirImport.get_funcvirt('LoadStringW')
-    print "f2", e.DirExport.get_funcvirt('SetUserGeoID')
+    print("f1", e.DirImport.get_funcvirt('LoadStringW'))
+    print("f2", e.DirExport.get_funcvirt('SetUserGeoID'))
     open('out.bin', 'wb').write(e_str)
     # o = Coff(open('main.obj').read())
     # print repr(o.Coffhdr)

@@ -2,8 +2,8 @@
 
 import struct
 import array
-from strpatchwork import StrPatchwork
-from new_cstruct import CStruct
+from .strpatchwork import StrPatchwork
+from .new_cstruct import CStruct
 import logging
 from collections import defaultdict
 from pprint import pprint as pp
@@ -287,7 +287,7 @@ CONSTANT_TYPES = {
     12: CPNameandType,
 }
 
-CONSTANT_TYPES_inv = dict([(x[1], x[0]) for x in CONSTANT_TYPES.items()])
+CONSTANT_TYPES_inv = dict([(x[1], x[0]) for x in list(CONSTANT_TYPES.items())])
 
 
 class CPoolfield(CStruct):
@@ -296,7 +296,7 @@ class CPoolfield(CStruct):
 
     @classmethod
     def unpack_l(cls, s, off=0, parent_head=None, _sex=1, _wsize=32):
-        tag = ord(s[off])
+        tag = int(s[off])
         if not tag in CONSTANT_TYPES:
             raise ValueError('unknown type', hex(tag))
         c, l = CONSTANT_TYPES[tag].unpack_l(s, off, parent_head, _sex, _wsize)

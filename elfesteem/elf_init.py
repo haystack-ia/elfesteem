@@ -2,9 +2,9 @@
 
 import struct
 
-import cstruct
-import elf
-from strpatchwork import StrPatchwork
+from . import cstruct
+from . import elf
+from .strpatchwork import StrPatchwork
 import logging
 
 log = logging.getLogger("elfparse")
@@ -17,24 +17,27 @@ log.setLevel(logging.WARN)
 class test(type):
     pass
 
+class StructWrapperMC(type):
+    def __new__(cls, name, bases, dct):
+        print(dct)
+        wrapped = dct.get('wrapped', None)
+        if wrapped is not None:  # XXX: make dct lookup look into base classes
+            for fname, v in wrapped._fields:
+                dct[fname] = property(
+                    dct.pop("get_" + fname,
+                            lambda self, fname=fname: getattr(
+                                self.cstr, fname)),
+                    dct.pop("set_" + fname,
+                            lambda self, v, fname=fname: setattr(
+                                self.cstr, fname, v)),
+                    dct.pop("del_" + fname, None))
+        return type.__new__(cls, name, bases, dct)
 
-class StructWrapper(object):
 
-    class __metaclass__(type):
 
-        def __new__(cls, name, bases, dct):
-            wrapped = dct["wrapped"]
-            if wrapped is not None:  # XXX: make dct lookup look into base classes
-                for fname, v in wrapped._fields:
-                    dct[fname] = property(dct.pop("get_" + fname,
-                                                  lambda self, fname=fname: getattr(
-                                                      self.cstr, fname)),
-                                          dct.pop("set_" + fname,
-                                                  lambda self, v, fname=fname: setattr(
-                                                      self.cstr, fname, v)),
-                                          dct.pop("del_" + fname, None))
-            return type.__new__(cls, name, bases, dct)
+class StructWrapper(metaclass=StructWrapperMC):
     wrapped = None
+    
 
     def __init__(self, parent, sex, size, *args, **kargs):
         self.cstr = self.wrapped(sex, size, *args, **kargs)
@@ -161,32 +164,32 @@ class ContentManager(object):
 # Sections
 
 
-class Section(object):
+class SectionMC(type):
+    def __new__(cls, name, bases, dct):
+        o = type.__new__(cls, name, bases, dct)
+        if name != "Section":
+            Section.register(o)
+        return o
+
+    def register(cls, o):
+        if o.sht is not None:
+            cls.sectypes[o.sht] = o
+
+    def __call__(cls, parent, sex, size, shstr=None):
+        sh = None
+        if shstr is not None:
+            sh = WShdr(None, sex, size, shstr)
+            if sh.type in Section.sectypes:
+                cls = Section.sectypes[sh.type]
+        i = cls.__new__(cls, cls.__name__, cls.__bases__, cls.__dict__)
+        if sh is not None:
+            sh.parent = i
+        i.__init__(parent, sh)
+        return i
+
+
+class Section(metaclass=SectionMC):
     sectypes = {}
-
-    class __metaclass__(type):
-
-        def __new__(cls, name, bases, dct):
-            o = type.__new__(cls, name, bases, dct)
-            if name != "Section":
-                Section.register(o)
-            return o
-
-        def register(cls, o):
-            if o.sht is not None:
-                cls.sectypes[o.sht] = o
-
-        def __call__(cls, parent, sex, size, shstr=None):
-            sh = None
-            if shstr is not None:
-                sh = WShdr(None, sex, size, shstr)
-                if sh.type in Section.sectypes:
-                    cls = Section.sectypes[sh.type]
-            i = cls.__new__(cls, cls.__name__, cls.__bases__, cls.__dict__)
-            if sh is not None:
-                sh.parent = i
-            i.__init__(parent, sh)
-            return i
 
     content = ContentManager()
 
@@ -345,7 +348,7 @@ class StrTable(Section):
         index = 0
         l = len(c)
         while index < l:
-            p = c.find("\0", index)
+            p = c.find(b"\0", index)
             if p < 0:
                 log.warning("Missing trailing 0 for string [%s]" % c)  # XXX
                 p = len(c) - index
@@ -356,8 +359,8 @@ class StrTable(Section):
             # c = c[p+1:]
 
     def get_name(self, ofs):
-        n = self.content[ofs:self.content.find('\x00', offset=ofs)]
-        return n
+        n = self.content[ofs:self.content.find(b'\x00', offset=ofs)]
+        return str(n,'ascii')
 
     def add_name(self, name):
         if name in self.content:
@@ -370,7 +373,7 @@ class StrTable(Section):
         s = str(self.content)
         if not name in s:
             raise ValueError('unknown name', name)
-        s = s.replace('\x00' + name + '\x00', '\x00' + new_name + '\x00')
+        s = s.replace(b'\x00' + name + b'\x00', b'\x00' + new_name + b'\x00')
         self.content = s
         return len(self.content)
 
@@ -481,6 +484,7 @@ class SHList(object):
         if n.startswith("."):
             n = n[1:]
         n = n.replace(".", "_").replace("-", "_")
+
         setattr(self, n, section)  # xxx
 
     def append(self, item):
@@ -765,8 +769,8 @@ class ELF(object):
 
     def parse_content(self):
         h = self.content[:8]
-        self.size = ord(h[4]) * 32
-        self.sex = ord(h[5])
+        self.size = int(h[4]) * 32
+        self.sex = int(h[5])
         self.Ehdr = WEhdr(self, self.sex, self.size, self.content)
         self.sh = SHList(self, self.sex, self.size)
         self.ph = PHList(self, self.sex, self.size)
@@ -819,5 +823,5 @@ if __name__ == "__main__":
     readline.parse_and_bind("tab: complete")
 
     e = ELF(open("/bin/ls").read())
-    print repr(e)
+    print(repr(e))
     # o = ELF(open("/tmp/svg-main.o").read())

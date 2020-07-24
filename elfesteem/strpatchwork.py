@@ -1,11 +1,11 @@
 from array import array
-from sys import maxint
+from sys import maxsize
 
 
 class StrPatchwork:
 
-    def __init__(self, s="", paddingbyte="\x00"):
-        self.s = array("B", str(s))
+    def __init__(self, s=b"", paddingbyte=b"\x00"):
+        self.s = array("B", s)
         # cache s to avoid rebuilding str after each find
         self.s_cache = s
         self.paddingbyte = paddingbyte
@@ -15,9 +15,10 @@ class StrPatchwork:
 
     def __getitem__(self, item):
         s = self.s
-        if type(item) is slice:
+        if type(item) is slice and item.stop is not None:
             end = item.stop
             l = len(s)
+
             if l < end and end != maxint:  # XXX hack [x:] give 2GB limit
                 # This is inefficient but avoids complicated maths if step is
                 # not 1
@@ -25,7 +26,9 @@ class StrPatchwork:
                 s.extend(array("B", self.paddingbyte * (end - l)))
             r = s[item]
             return r.tostring()
-
+        elif type(item) is slice and item.stop is None:
+            #this means slice length is 0
+            return s[item].tostring()
         else:
             if item > len(s):
                 return self.paddingbyte
@@ -61,6 +64,7 @@ class StrPatchwork:
     def find(self, pattern, offset=0):
         if not self.s_cache:
             self.s_cache = self.s.tostring()
+
         return self.s_cache.find(pattern, offset)
 
     def rfind(self, pattern, start=0, end=None):
